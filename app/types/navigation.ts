@@ -10,4 +10,5 @@ export type TabParamList = {
     Explorar: { usuario: string }; // Aba Home recebe o usuário
     Favoritos: { usuario: string };
     Perfil: { usuario: string }; // Aba Perfil recebe o usuário
+    ONGs: { usuario: string }; // Aba ONGs recebe o usuário
 }

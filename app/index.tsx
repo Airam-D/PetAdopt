@@ -7,6 +7,7 @@ import { RootStackParamList, TabParamList } from './types/navigation';
 import Detalhes from './screens/Detalhes';
 import Home from './screens/Home';
 import Login from './screens/Login';
+import Ongs from './screens/Ongs';
 import Perfil from './screens/Perfi';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -37,6 +38,12 @@ function TabNavigator({ route }: any) {
         tabBarLabel: 'Explorar',
         tabBarIcon: ({ focused, color }) => (
           <Text style={{ fontSize: 24 }}>🔍</Text>
+        )
+      }} />
+      <Tab.Screen name="ONGs" component={Ongs} initialParams={{ usuario }} options={{ 
+        tabBarLabel: 'ONGs',
+        tabBarIcon: ({ focused, color }) => (
+          <Text style={{ fontSize: 24 }}>🤝</Text>
         )
       }} />
       <Tab.Screen name="Perfil" component={Perfil} initialParams={{ usuario }} options={{ 

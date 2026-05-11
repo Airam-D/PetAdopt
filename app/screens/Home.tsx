@@ -1,40 +1,27 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useEffect, useRef } from 'react';
 import {
-    View,
+    Animated,
+    FlatList,
+    StatusBar,
+    StyleSheet,
     Text,
     TouchableOpacity,
-    StyleSheet,
-    Animated,
-    ScrollView,
-    StatusBar,
-    Dimensions,
-    Alert,
+    View,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
+import { RootStackParamList, TabParamList } from '../types/navigation';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'PetDetalhes'>;
-
-const { width, height } = Dimensions.get('window');
+type Props = CompositeScreenProps<
+    BottomTabScreenProps<TabParamList, 'Explorar'>,
+    NativeStackScreenProps<RootStackParamList>
+>;
 
 // ===== DADOS MOCKADOS DOS PETS =====
-const PETS_DATA: Record<
-    string,
+const PETS_DATA = [
     {
-        nome: string;
-        especie: string;
-        idade: string;
-        porte: string;
-        cidade: string;
-        cor: string;
-        emoji: string;
-        tags: string[];
-        descricao: string;
-        peso: string;
-        saude: string[];
-    }
-> = {
-    '1': {
+        id: '1',
         nome: 'Bobi',
         especie: 'Cachorro',
         idade: '2 anos',
@@ -48,7 +35,8 @@ const PETS_DATA: Record<
         peso: '12 kg',
         saude: ['Vacinado em dia', 'Castrado', 'Vermifugado', 'Microchipado'],
     },
-    '2': {
+    {
+        id: '2',
         nome: 'Mel',
         especie: 'Gato',
         idade: '1 ano',
@@ -62,7 +50,8 @@ const PETS_DATA: Record<
         peso: '3,5 kg',
         saude: ['Vacinada em dia', 'Castrada', 'Vermifugada', 'Saudável'],
     },
-    '3': {
+    {
+        id: '3',
         nome: 'Rex',
         especie: 'Cachorro',
         idade: '4 anos',
@@ -76,7 +65,8 @@ const PETS_DATA: Record<
         peso: '28 kg',
         saude: ['Vacinado em dia', 'Castrado', 'Vermifugado', 'Adestrado'],
     },
-    '4': {
+    {
+        id: '4',
         nome: 'Nina',
         especie: 'Coelha',
         idade: '8 meses',
@@ -90,7 +80,8 @@ const PETS_DATA: Record<
         peso: '1,8 kg',
         saude: ['Vacinada', 'Vermifugada', 'Saudável'],
     },
-    '5': {
+    {
+        id: '5',
         nome: 'Thor',
         especie: 'Cachorro',
         idade: '3 anos',
@@ -104,428 +95,141 @@ const PETS_DATA: Record<
         peso: '32 kg',
         saude: ['Vacinado em dia', 'Vermifugado', 'Saudável'],
     },
-};
+];
 
-export default function Detalhes({ route, navigation }: Props) {
-    // ===== OBTÉM PARÂMETROS DA NAVEGAÇÃO =====
-    const { petID, nomePet } = route.params;
 
-    // Busca os dados do pet pelo ID, ou usa valores padrão se não encontrar
-    const pet = PETS_DATA[petID] || {
-        nome: nomePet,
-        especie: '?',
-        idade: '?',
-        porte: '?',
-        cidade: '?',
-        cor: '#FFE8CC',
-        emoji: '🐾',
-        tags: [],
-        descricao: 'Informações indisponíveis.',
-        peso: '?',
-        saude: [],
-    };
-
-    // ===== ESTADOS E ANIMAÇÕES =====
+export default function Home({ route, navigation }: Props) {
+    const usuario = route.params?.usuario || 'Visitante';
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(50)).current;
-    const [favorito, setFavorito] = useState(false);
-    const heartScale = useRef(new Animated.Value(1)).current;
 
-    // ===== CONFIGURA HEADER E ANIMAÇÕES NA MONTAGEM =====
     useEffect(() => {
-        // Personaliza o header com o nome do pet
-        navigation.setOptions({
-            title: pet.nome,
-            headerTintColor: '#3D2314',
-            headerBackTitle: 'Voltar'
-        });
-
-        // Animações de entrada
-        Animated.parallel([
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 500,
-                useNativeDriver: true
-            }),
-            Animated.spring(slideAnim, {
-                toValue: 0,
-                tension: 50,
-                friction: 8,
-                useNativeDriver: true
-            }),
-        ]).start();
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+        }).start();
     }, []);
 
-    // ===== FUNÇÃO TOGGLE FAVORITO =====
-    const toggleFav = () => {
-        setFavorito(!favorito); // Inverte o estado
-        // Animação de "pulso" no coração
-        Animated.sequence([
-            Animated.spring(heartScale, {
-                toValue: 1.4,
-                useNativeDriver: true,
-                tension: 200
-            }),
-            Animated.spring(heartScale, {
-                toValue: 1,
-                useNativeDriver: true,
-                tension: 200
-            }),
-        ]).start();
-    };
+    // Função que define como CADA item da lista será desenhado
+    const renderPetItem = ({ item }: { item: typeof PETS_DATA[0] }) => (
+        <TouchableOpacity style={[styles.card, { backgroundColor: item.cor }]} activeOpacity={0.8} onPress={() => navigation.navigate('PetDetalhes', { petID: item.id, nomePet: item.nome })}>
+            <View style={styles.cardEmoji}>
+                <Text style={styles.emojiText}>{item.emoji}</Text>
+            </View>
 
-    // ===== FUNÇÃO ADOTAR =====
-    const handleAdotar = () => {
-        Alert.alert(
-            '🐾 Interesse registrado!',
-            `Recebemos seu interesse em adotar ${pet.nome}! Nossa equipe entrará em contato em breve.`,
-            [{ text: 'Ótimo! 🎉', style: 'default' }]
-        );
-    };
+            <View style={styles.cardInfo}>
+                <Text style={styles.petNome}>{item.nome}</Text>
+                <Text style={styles.petDetails}>{item.especie} ° {item.idade}</Text>
+                <Text style={styles.petCity}> 📍 {item.cidade}</Text>
+            </View>
+
+            <View style={styles.arrowBtn}>
+                <Text style={styles.arrowText}>→</Text>
+            </View>
+        </TouchableOpacity>
+    );
 
     return (
-        <View style={styles.root}>
+        <View style={styles.container}>
             <StatusBar barStyle="dark-content" />
+            
+            <View style={styles.header}>
+                <Text style={styles.welcome}>Bem-vindo, {usuario}! 👋</Text>
+                <Text style={styles.title}>Encontre seu Companheiro</Text>
+            </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* ===== HERO CARD ===== */}
-                <Animated.View
-                    style={[
-                        styles.hero,
-                        {
-                            backgroundColor: pet.cor,
-                            opacity: fadeAnim,
-                            transform: [{ translateY: slideAnim }]
-                        },
-                    ]}
-                >
-                    <View style={styles.heroContent}>
-                        {/* Círculo com emoji do pet */}
-                        <View style={styles.bigEmojiCircle}>
-                            <Text style={styles.bigEmoji}>{pet.emoji}</Text>
-                        </View>
-
-                        {/* Nome e informações básicas */}
-                        <Text style={styles.petNome}>{pet.nome}</Text>
-                        <Text style={styles.petSub}>{pet.especie} · {pet.porte} · {pet.peso}</Text>
-
-                        {/* Localização */}
-                        <View style={styles.cidadeRow}>
-                            <Text style={styles.cidadeText}>📍 {pet.cidade}</Text>
-                        </View>
-
-                        {/* Tags de características */}
-                        <View style={styles.tagsRow}>
-                            {pet.tags.map((tag, i) => (
-                                <View key={i} style={styles.tag}>
-                                    <Text style={styles.tagText}>{tag}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* Botão de favorito */}
-                    <TouchableOpacity style={styles.favBtn} onPress={toggleFav}>
-                        <Animated.Text style={[styles.favIcon, { transform: [{ scale: heartScale }] }]}>
-                            {favorito ? '❤️' : '🤍'}
-                        </Animated.Text>
-                    </TouchableOpacity>
-                </Animated.View>
-
-                {/* ===== GRID DE INFORMAÇÕES RÁPIDAS ===== */}
-                <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-                    <View style={styles.infoGrid}>
-                        {[
-                            { label: 'Idade', val: pet.idade, emoji: '🎂' },
-                            { label: 'Porte', val: pet.porte, emoji: '📏' },
-                            { label: 'Peso', val: pet.peso, emoji: '⚖️' },
-                            { label: 'Espécie', val: pet.especie, emoji: '🐾' },
-                        ].map((info, i) => (
-                            <View key={i} style={styles.infoCard}>
-                                <Text style={styles.infoEmoji}>{info.emoji}</Text>
-                                <Text style={styles.infoVal}>{info.val}</Text>
-                                <Text style={styles.infoLabel}>{info.label}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </Animated.View>
-
-                {/* ===== SEÇÃO SOBRE ===== */}
-                <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-                    <Text style={styles.sectionTitle}>Sobre {pet.nome}</Text>
-                    <Text style={styles.descText}>{pet.descricao}</Text>
-                </Animated.View>
-
-                {/* ===== SEÇÃO SAÚDE ===== */}
-                <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-                    <Text style={styles.sectionTitle}>Saúde & Cuidados</Text>
-                    <View style={styles.saudeGrid}>
-                        {pet.saude.map((item, i) => (
-                            <View key={i} style={styles.saudeItem}>
-                                <Text style={styles.saudeCheck}>✅</Text>
-                                <Text style={styles.saudeText}>{item}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </Animated.View>
-
-                {/* ===== CARD DA ONG ===== */}
-                <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-                    <View style={styles.ongCard}>
-                        <Text style={styles.ongEmoji}>🏠</Text>
-                        <View style={styles.ongInfo}>
-                            <Text style={styles.ongNome}>ONG Amor Animal</Text>
-                            <Text style={styles.ongSub}>Responsável por {pet.nome}</Text>
-                            <Text style={styles.ongCidade}>📍 {pet.cidade}</Text>
-                        </View>
-                        <TouchableOpacity style={styles.ongContatoBtn}>
-                            <Text style={styles.ongContatoText}>💬</Text>
-                        </TouchableOpacity>
-                    </View>
-                </Animated.View>
-
-                {/* Espaço para o botão fixo não cobrir o conteúdo */}
-                <View style={{ height: 120 }} />
-            </ScrollView>
-
-            {/* ===== BARRA INFERIOR FIXA ===== */}
-            <Animated.View style={[styles.bottomBar, { opacity: fadeAnim }]}>
-                <TouchableOpacity style={styles.btnAdotar} onPress={handleAdotar} activeOpacity={0.9}>
-                    <Text style={styles.btnAdotarText}>Quero adotar {pet.nome} 🐾</Text>
-                </TouchableOpacity>
+            <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+                <FlatList 
+                    data={PETS_DATA} // 1. A fonte de dados
+                    keyExtractor={(item) => item.id} // 2. Identificador único
+                    renderItem={renderPetItem} // 3. Função para renderizar cada item
+                    contentContainerStyle={styles.listContent}
+                />
             </Animated.View>
         </View>
     );
 }
 
-// ===== ESTILOS =====
 const styles = StyleSheet.create({
-    root: {
+    container: {
         flex: 1,
         backgroundColor: '#FDF6EE',
     },
-    hero: {
-        marginHorizontal: 20,
-        marginTop: 16,
-        borderRadius: 28,
-        padding: 28,
-        alignItems: 'center',
-        position: 'relative',
+    header: {
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        paddingBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E8D5C4',
     },
-    heroContent: {
-        alignItems: 'center',
-        width: '100%'
+    welcome: {
+        fontSize: 14,
+        color: '#9A7A6A',
+        fontWeight: '500',
     },
-    bigEmojiCircle: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: 'rgba(255,255,255,0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
-    },
-    bigEmoji: {
-        fontSize: 50
-    },
-    petNome: {
-        fontSize: 32,
+    title: {
+        fontSize: 28,
         fontWeight: '800',
         color: '#3D2314',
-        letterSpacing: -0.8,
-    },
-    petSub: {
-        fontSize: 15,
-        color: '#7A5A4A',
-        fontWeight: '500',
         marginTop: 4,
     },
-    cidadeRow: {
-        marginTop: 8,
-        backgroundColor: 'rgba(61,35,20,0.08)',
-        paddingHorizontal: 14,
-        paddingVertical: 5,
-        borderRadius: 20,
+    listContent: {
+        padding: 20,
+        paddingTop: 16,
     },
-    cidadeText: {
-        fontSize: 13,
-        color: '#5A3A2A',
-        fontWeight: '600'
-    },
-    tagsRow: {
+    card: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 14,
-        justifyContent: 'center',
-    },
-    tag: {
-        backgroundColor: 'rgba(61,35,20,0.1)',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-    },
-    tagText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#3D2314'
-    },
-    favBtn: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(255,255,255,0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    favIcon: {
-        fontSize: 22
-    },
-    section: {
-        paddingHorizontal: 20,
-        marginTop: 20,
-    },
-    infoGrid: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    infoCard: {
-        flex: 1,
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        paddingVertical: 14,
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 16,
         alignItems: 'center',
         shadowColor: '#3D2314',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 3,
     },
-    infoEmoji: {
-        fontSize: 18,
-        marginBottom: 6
+    cardEmoji: {
+        width: 70,
+        height: 70,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    infoVal: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: '#3D2314'
+    emojiText: {
+        fontSize: 35,
     },
-    infoLabel: {
-        fontSize: 10,
-        color: '#9A7A6A',
-        fontWeight: '500',
-        marginTop: 2
+    cardInfo: {
+        flex: 1,
+        marginLeft: 16,
     },
-    sectionTitle: {
-        fontSize: 18,
+    petNome: {
+        fontSize: 20,
         fontWeight: '800',
         color: '#3D2314',
-        marginBottom: 12,
-        letterSpacing: -0.3,
     },
-    descText: {
-        fontSize: 15,
-        color: '#6B4C3B',
-        lineHeight: 23,
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 16,
-    },
-    saudeGrid: {
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 16,
-        gap: 10,
-    },
-    saudeItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    saudeCheck: {
-        fontSize: 16
-    },
-    saudeText: {
+    petDetails: {
         fontSize: 14,
         color: '#5A3A2A',
-        fontWeight: '500'
+        marginTop: 2,
     },
-    ongCard: {
-        backgroundColor: '#3D2314',
-        borderRadius: 20,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    ongEmoji: {
-        fontSize: 36
-    },
-    ongInfo: {
-        flex: 1
-    },
-    ongNome: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#FFF'
-    },
-    ongSub: {
-        fontSize: 12,
-        color: '#BBA89A',
-        marginTop: 2
-    },
-    ongCidade: {
+    petCity: {
         fontSize: 12,
         color: '#9A7A6A',
-        marginTop: 2
+        marginTop: 6,
     },
-    ongContatoBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#E8A87C',
+    arrowBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FFF',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    ongContatoText: {
-        fontSize: 20
-    },
-    bottomBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#FDF6EE',
-        paddingHorizontal: 24,
-        paddingBottom: 34,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#EDE0D4',
-    },
-    btnAdotar: {
-        backgroundColor: '#E8A87C',
-        borderRadius: 16,
-        height: 56,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#E8A87C',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 8,
-    },
-    btnAdotarText: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#FFF',
-        letterSpacing: 0.2,
+    arrowText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#3D2314',
     },
 });
